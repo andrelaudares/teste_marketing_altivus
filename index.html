@@ -1,0 +1,215 @@
+<html><head><base href="https://marketingdatahub.com/">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Marketing Data Hub - Visualização estruturada de dados de campanha de marketing para facilitar a raspagem por IA">
+<title>Marketing Data Hub</title>
+<style>
+  :root {
+    --primary-color: #007bff;
+    --secondary-color: #f8f9fa;
+    --text-color: #333;
+    --border-color: #dee2e6;
+  }
+  
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    font-family: Arial, Roboto, sans-serif;
+    line-height: 1.6;
+    color: var(--text-color);
+    background-color: #ffffff;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  header {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  main {
+    margin-top: 2rem;
+  }
+  
+  h1, h2 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+  }
+  
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+  }
+  
+  th, td {
+    border: 1px solid var(--border-color);
+    padding: 0.5rem;
+    text-align: left;
+  }
+  
+  th {
+    background-color: var(--secondary-color);
+    font-weight: bold;
+  }
+  
+  .editable:focus {
+    background-color: #fff8dc;
+    outline: none;
+  }
+  
+  .filter-buttons {
+    margin-bottom: 1rem;
+  }
+  
+  .filter-buttons button, .download-button {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    margin-right: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .download-button {
+    margin-top: 1rem;
+  }
+  
+  @media (max-width: 768px) {
+    table {
+      font-size: 0.9rem;
+    }
+    
+    .filter-buttons button {
+      margin-bottom: 0.5rem;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Marketing Data Hub</h1>
+  </header>
+  
+  <main class="container">
+    <h2>Dados de Campanha de Marketing</h2>
+    <div class="filter-buttons">
+      <button onclick="filterTable('all')">Todos</button>
+    </div>
+    <table id="marketing-data">
+      <thead>
+        <tr>
+          <th>Nome do Produto</th>
+          <th>Data de Postagem</th>
+          <th>Horário de Postagem</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr data-category="electronics">
+          <td class="editable" contenteditable="true">IOT ambiental</td>
+          <td class="editable" contenteditable="true">2024-09-20</td>
+          <td class="editable" contenteditable="true">09:00</td>
+        </tr>
+        <tr data-category="clothing">
+          <td class="editable" contenteditable="true">IOT umidade</td>
+          <td class="editable" contenteditable="true">2024-09-21</td>
+          <td class="editable" contenteditable="true">14:30</td>
+        </tr>
+      </tbody>
+    </table>
+    <button class="download-button" onclick="downloadCSV()">Download CSV</button>
+  </main>
+
+  <script>
+    function filterTable(category) {
+      const rows = document.querySelectorAll('#marketing-data tbody tr');
+      rows.forEach(row => {
+        if (category === 'all' || row.getAttribute('data-category') === category) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    function downloadCSV() {
+      const table = document.getElementById('marketing-data');
+      const rows = table.querySelectorAll('tr');
+      let csv = [];
+      
+      for (const row of rows) {
+        const rowData = Array.from(row.querySelectorAll('th, td'))
+          .map(cell => cell.textContent);
+        csv.push(rowData.join(','));
+      }
+      
+      const csvContent = csv.join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      
+      if (navigator.msSaveBlob) {
+        navigator.msSaveBlob(blob, 'marketing_data.csv');
+      } else {
+        link.href = URL.createObjectURL(blob);
+        link.setAttribute('download', 'marketing_data.csv');
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    }
+
+    // Add event listeners to save changes when editing cells
+    document.querySelectorAll('.editable').forEach(cell => {
+      cell.addEventListener('blur', function() {
+        // Here you can add code to save changes to a backend or local storage
+        console.log('Cell updated:', this.textContent);
+      });
+    });
+
+    // Sort table columns
+    document.querySelectorAll('#marketing-data th').forEach(headerCell => {
+      headerCell.addEventListener('click', () => {
+        const tableElement = headerCell.parentElement.parentElement.parentElement;
+        const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+        const currentIsAscending = headerCell.classList.contains('th-sort-asc');
+
+        sortTableByColumn(tableElement, headerIndex, !currentIsAscending);
+      });
+    });
+
+    function sortTableByColumn(table, column, asc = true) {
+      const dirModifier = asc ? 1 : -1;
+      const tBody = table.tBodies[0];
+      const rows = Array.from(tBody.querySelectorAll('tr'));
+
+      const sortedRows = rows.sort((a, b) => {
+        const aColText = a.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+        const bColText = b.querySelector(`td:nth-child(${column + 1})`).textContent.trim();
+
+        return aColText > bColText ? (1 * dirModifier) : (-1 * dirModifier);
+      });
+
+      while (tBody.firstChild) {
+        tBody.removeChild(tBody.firstChild);
+      }
+
+      tBody.append(...sortedRows);
+
+      table.querySelectorAll('th').forEach(th => th.classList.remove('th-sort-asc', 'th-sort-desc'));
+      table.querySelector(`th:nth-child(${column + 1})`).classList.toggle('th-sort-asc', asc);
+      table.querySelector(`th:nth-child(${column + 1})`).classList.toggle('th-sort-desc', !asc);
+    }
+  </script>
+</body>
+</html>
